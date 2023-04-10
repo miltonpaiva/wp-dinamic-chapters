@@ -6,8 +6,9 @@
  *
  */
 
-define('TEMPLATE_DIRETORY_URI',     get_template_directory_uri());
-define('TEMPLATE_DIRETORY',     	get_template_directory());
+define('TEMPLATE_DIRETORY_URI', get_template_directory_uri());
+define('TEMPLATE_DIRETORY',     get_template_directory());
+define('ADMIN_BLOCKS_DIRETORY', get_template_directory() . '/admin_blocks');
 
 require TEMPLATE_DIRETORY . '/src/Theme.php';
 require TEMPLATE_DIRETORY . '/src/Chapters.php';
@@ -16,11 +17,8 @@ class TestePath {
 
     public $theme_name = 'TestePath';
 
-    public $custom_endpoints = [];
-    public $templates        = [];
-
-    public $chapters;
     public $theme;
+    public $chapters;
 
     /**
      * Autoload method
@@ -32,22 +30,8 @@ class TestePath {
             Theme custom pages + endpoints
         \*------------------------------------*/
 
-        $this->chapters = new Chapters();
-        $this->theme    = new Theme();
-
-        $this->chapters->templates =
-        [
-            [
-                'slug'    => 'template_legal',
-                'name'    => 'template legal',
-                'archive' => '/templates/template_1.php',
-            ],
-            [
-                'slug'    => 'template_legal2',
-                'name'    => 'template legal2',
-                'archive' => '/templates/template_2.php',
-            ],
-        ];
+        $this->theme     = new Theme();
+        $this->chapters  = new Chapters();
 
         // ações para gerir as urls dos sites com base na arvore e nos templates
         add_action( 'init', array(&$this, 'addCustomEndpoints'));
@@ -68,24 +52,24 @@ class TestePath {
             $rewrite_arr = [];
 
             // montando um array pora o regex
-            // com base no nivel da url do capitulo
+            // com base no nivel da arvore/url do capitulo
             for ($index=0; $index <= $chapter->level ; $index++) {
                 $rewrite_arr[] = '([^/]+)';
             }
 
-            // montando o regex e definindo o nivel do parametro na url
+            // montando o regex e definindo em que nivel na url está
+            // o parametro que recebe o post_name do capitulo
             $rewrite_str  = implode('/', $rewrite_arr) . '/?$';
             $paramn_match = 'index.php?chapter_post_name=$matches[' . ($chapter->level +1) . ']';
 
             // adicionando regra de url
             add_rewrite_rule( $rewrite_str, $paramn_match, 'top' );
-
         }
     }
 
     /**
      * insere nas variaveis da url o
-     * parametro esperado nos endpoints
+     * parametro(post_name) esperado nos endpoints
      * informado atravez do rewrite na função addCustomEndpoints()
      * @param  array $query_vars
      * @return array
@@ -113,11 +97,11 @@ class TestePath {
         $chapter = $this->chapters->getChapterByPostName($post_name);
 
         // verifica se é algum endpoint customizado, se for substitui o template atual
-        foreach ($this->chapters->templates as $template) {
+        foreach ($this->chapters->templates->getAllTemplates() as $template) {
 
-            if ($template['slug'] == $chapter->template_slug) {
+            if ($template->post_name == $chapter->template_slug) {
                 $is_custom_endpoint = true;
-                $custom_template    = TEMPLATE_DIRETORY . $template['archive'];
+                $custom_template    = $template->archive_dir;
                 break;
             }
 
