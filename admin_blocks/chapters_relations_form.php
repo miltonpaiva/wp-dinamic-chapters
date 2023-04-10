@@ -14,9 +14,11 @@
 	tr:nth-child(even) {
 	  background-color: #dddddd;
 	}
-	</style>
-</head>
-<body>
+</style>
+
+<!-- ===== ===== ===== ===== ===== ===== ===== ===== -->
+<!-- BLOCO INSTANCIADO NA CLASSE [<?= get_class(); ?>] -->
+<!-- ===== ===== ===== ===== ===== ===== ===== ===== -->
 
 <table>
   <tr>
