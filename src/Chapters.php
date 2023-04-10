@@ -1,17 +1,20 @@
 <?php
 
+require TEMPLATE_DIRETORY . '/src/BaseClass.php';
+require TEMPLATE_DIRETORY . '/src/Templates.php';
 
 /**
  * classe responsavel por gerenciar as informações dos capitulos
  */
-class Chapters
+class Chapters extends BaseClass
 {
-
 	public $templates;
 
 	function __construct()
 	{
 		$this->defineHooks();
+
+        $this->templates = new Templates();
 	}
 
     /**
@@ -20,8 +23,8 @@ class Chapters
      */
 	public function defineHooks(): void
 	{
-		// criando o post type de capitulos
-        add_action('init', [&$this, 'createPostType' ]);
+		// criando os post type de capitulos
+        add_action('init', [&$this, 'createPostTypes' ]);
 
         // para criação e registro das infomrações do metabox na pagina de
         // inserção e edição dos capitulos
@@ -30,11 +33,12 @@ class Chapters
 	}
 
 	/**
-	 * registra o post type de capitulos
+	 * registra os post type de capitulos
 	 * @return void
 	 */
-    public function createPostType(): void
+    public function createPostTypes(): void
     {
+        // post type de capitulos
         register_post_type( 'chapters',
             array(
                 'labels' => array(
@@ -50,8 +54,29 @@ class Chapters
                 'show_in_rest'              => true,
                 'publicly_queryable'        => false,
                 'query_var'                 => false,
-                'menu_icon'                 => 'dashicons-text-page',
+                'menu_icon'                 => 'dashicons-welcome-add-page',
                 'menu_position'             => 2
+            )
+        );
+
+        // post type de conteudo de capitulos
+        register_post_type( 'chapter_content',
+            array(
+                'labels' => array(
+                    'name'                  => __( 'Conteúdo dos Capitulos'),
+                    'singular_name'         => __( 'Conteúdo do Capitulo'),
+                    'add_new_item'          => __( 'Adicionar novo Conteúdo'),
+                    'edit_item'             => __( 'Editar Conteúdo'),
+                    'search_items'          => __( 'Pesquisar Conteúdo'),
+                ),
+                'supports'                  => array('title', 'editor'),
+                'public'                    => true,
+                'has_archive'               => false,
+                'show_in_rest'              => true,
+                'publicly_queryable'        => false,
+                'query_var'                 => false,
+                'menu_icon'                 => 'dashicons-media-text',
+                'menu_position'             => 3
             )
         );
     }
@@ -62,28 +87,12 @@ class Chapters
      */
     public function createMetaBoxes(): void
     {
-    	$this->registerMetaBox('chapters_relations', 'Seleção de Capitulo Pai', 'showRelationsForm');
-    	$this->registerMetaBox('chapters_templates', 'Seleção de Template do Capitulo', 'showTemplatesForm');
-    }
-
-	/**
-	 * cria a meta box dentro da pagina do post type de capitulos
-	 * @return void
-	 */
-    public function registerMetaBox(string $id, string $title, string $callback_name): void
-    {
-        $callback  = [&$this, $callback_name];
-        $post_type = 'chapters';
-        $context   = 'normal';
-        $priority  = 'default';
-
-        // $callback_args = null
-        add_meta_box($id ,$title, $callback, $post_type, $context, $priority);
+    	$this->registerMetaBox('chapters_relations', 'Seleção de Capitulo Pai', 'showRelationsForm', ['chapters']);
+    	$this->registerMetaBox('chapters_templates', 'Seleção de Template do Capitulo', 'showTemplatesForm', ['chapters']);
     }
 
     /**
-     * faz algumas mudanças nas informações do capitulo atual e
-     * da lista e exibe o formulario da meta box de relação
+     * exibe a meta box que define a arvore do capitulo
      * @param  object $current_post
      * @return void
      */
@@ -126,12 +135,11 @@ class Chapters
             $chapters[$key]->info = json_encode($chapter_info, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         }
 
-        require TEMPLATE_DIRETORY . '/admin_blocs/chapters_relations_form.php';
+        require ADMIN_BLOCKS_DIRETORY . '/chapters_relations_form.php';
     }
 
     /**
-     * faz algumas mudanças nas informações do capitulo atual e
-     * da lista e exibe o formulario da meta box de relação
+     * exibe a meta box que define o template do capitulo
      * @param  object $current_post
      * @return void
      */
@@ -139,12 +147,14 @@ class Chapters
     {
         $current_chapter_template_slug = get_post_meta( $current_post->ID, 'chapter_template_slug', true );
 
+        $all_templates = $this->templates->getAllTemplates();
+
         // validando o template selecionado
-        foreach ($this->templates as $key => $template) {
-    		$this->templates[$key]['is_selected'] = ($template['slug'] == $current_chapter_template_slug);
+        foreach ($all_templates as $key => $template) {
+    		$all_templates[$key]->is_selected = ($template->post_name == $current_chapter_template_slug);
         }
 
-        require TEMPLATE_DIRETORY . '/admin_blocs/chapters_templates_form.php';
+        require ADMIN_BLOCKS_DIRETORY . '/chapters_templates_form.php';
     }
 
     /**
@@ -154,6 +164,9 @@ class Chapters
      */
     public function saveMetaBoxData(int $post_id): void
     {
+        // validando o post type
+        if ( $_REQUEST['post_type'] != 'chapters' ) return;
+
         // pegando o json de informações da requisição
         $parent_chapter_info = $_REQUEST['parent_chapter_info'] ?? '[]';
         $parent_chapter_info = str_replace('\"', '"', $parent_chapter_info);
@@ -164,7 +177,7 @@ class Chapters
         // pegando o post atual
         $current_post = get_post($post_id);
 
-        $parent_chapter = $info['post_name'] ?? '';
+        $parent_chapter = $info['post_name']    ?? '';
         $chapter_tree   = $info['chapter_tree'] ?? "/{$current_post->post_name}";
 
         update_post_meta( $post_id, 'parent_chapter', $parent_chapter);
@@ -182,7 +195,7 @@ class Chapters
      */
     public function getAllChapters(): array
     {
-        $chapters = $this->getChaptersByTax('chapters')->posts ?? [];
+        $chapters = $this->getPostsByTax('chapters');
 
         // percorrendo todos os capitulos
         foreach ($chapters as $key => $chapter) {
@@ -217,36 +230,6 @@ class Chapters
         $chapter->level = substr_count($chapter->tree, '/', 1);
 
         return $chapter;
-    }
-
-    /**
-     * retorna uma lista com os capitulos cadastrados em determinada categoria
-     *
-     * @param string  $post_type
-     * @param integer $qtd
-     * @return object
-     */
-    public function getChaptersByTax(string $post_type, int $qtd = -1, $taxonomy = false, $session_tax_term = false): object
-    {
-        $args = [
-            'post_type'   => $post_type, 'posts_per_page' => $qtd,
-            'post_status' => 'publish',
-            'orderby' => 'id', 'order' => 'DESC',
-        ];
-
-        if ($taxonomy && $session_tax_term) {
-            $args['tax_query'] = [
-                [
-                    'taxonomy' => $taxonomy,
-                    'field'    => 'slug',
-                    'terms'    => [$session_tax_term],
-                ]
-            ];
-        }
-
-        $loop = new WP_Query( $args );
-
-        return $loop ?? new stdClass();
     }
 
     /**
