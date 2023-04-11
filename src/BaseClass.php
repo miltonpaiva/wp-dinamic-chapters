@@ -49,4 +49,30 @@ class BaseClass
 
         return $loop->posts ?? [];
     }
+
+    /**
+     * retorna uma lista de posts com base nos valores meta passados
+     * @param  string      $post_type
+     * @param  string      $meta_key
+     * @param  string      $meta_value
+     * @param  int|integer $qtd
+     * @return array
+     */
+    public function getPostsByMeta(string $post_type, string $meta_key, string $meta_value, int $qtd = -1): array
+    {
+        $args =
+        [
+            'post_type'      => $post_type,
+            'posts_per_page' => $qtd,
+            'post_status'    => 'publish',
+            'orderby'        => 'id',
+            'order'          => 'DESC',
+            'meta_key'       => $meta_key,
+            'meta_value'     => $meta_value,
+        ];
+
+        $loop = new WP_Query( $args );
+
+        return $loop->posts ?? [];
+    }
 }
