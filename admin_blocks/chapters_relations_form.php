@@ -22,14 +22,12 @@
 
 <table>
   <tr>
+    <td> Pesquisar: </td>
     <td>
-		Pesquisar:
+			<input type="text" name="" placeholder="digite o Capitulo aqui">
     </td>
     <td>
-		<input type="text" name="" placeholder="digite o Capitulo aqui">
-    </td>
-    <td>
-		<strong>Arvore atual: </strong> <?= $current_post->tree; ?>
+			<strong>Arvore atual: </strong> <?= $current_post->tree; ?>
     </td>
   </tr>
   <tr>
@@ -41,13 +39,13 @@
   <?php foreach ($chapters as $chapter): ?>
 		  <tr>
 		    <td>
-				<input type="radio" name="parent_chapter_info" id="<?= $chapter->post_name; ?>" value='<?= $chapter->info; ?>' <?= $chapter->is_selected? 'checked' : '' ; ?> >
+					<input type="radio" name="parent_chapter_info" id="<?= $chapter->post_name; ?>" value='<?= $chapter->info; ?>' <?= $chapter->is_selected? 'checked' : '' ; ?> >
 		    </td>
 		    <td>
-				<label for="<?= $chapter->post_name; ?>"><?= $chapter->post_title; ?></label>
+					<label for="<?= $chapter->post_name; ?>"><?= $chapter->post_title; ?></label>
 		    </td>
 		    <td>
-				<label for="<?= $chapter->post_name; ?>"><?= $chapter->tree; ?></label>
+					<label for="<?= $chapter->post_name; ?>"><?= $chapter->tree; ?></label>
 		    </td>
 		  </tr>
   <?php endforeach; ?>
@@ -55,7 +53,7 @@
   <?php if (count($chapters) == 0): ?>
 		  <tr>
 		    <td colspan="3">
-				não há capitulos disponiveis ou o capitulo atual ja contem capitulos filhos e não pode ser vinculado.
+					não há capitulos disponiveis ou o capitulo atual ja contem capitulos filhos e não pode ser vinculado.
 		    </td>
 		  </tr>
   <?php endif ?>
