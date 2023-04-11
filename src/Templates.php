@@ -29,6 +29,10 @@ class Templates extends BaseClass
         // inserção e edição dos templates e sessões
         add_action( 'add_meta_boxes', [&$this, 'createMetaBoxes' ]);
         add_action( 'save_post',      [&$this, 'saveMetaBoxData' ]);
+
+         // inserindo uma nova coluna na listagem de blocos de template
+        add_filter( 'manage_template_block_posts_columns', [&$this, 'registerCustomColumn' ]);
+        add_filter( 'manage_template_block_posts_custom_column', [&$this, 'showInfoCustomColumns' ], 10, 2 );
 	}
 
 	/**
@@ -151,6 +155,31 @@ class Templates extends BaseClass
         if ( $_REQUEST['post_type'] == 'template_block' ){
             update_post_meta( $post_id, 'template_block_archive_name', $_REQUEST['template_block_archive_name'] ?? '');
             update_post_meta( $post_id, 'template_block_template_slug', $_REQUEST['template_block_template_slug'] ?? '');
+        }
+    }
+
+    /**
+     * define uma nova coluna na listagem de blocos de template
+     * @param  array  $columns
+     * @return array
+     */
+    public function registerCustomColumn( array $columns ): array
+    {
+        $columns['template_block_template_slug'] = 'Template';
+
+        return $columns;
+    }
+
+    /**
+     * alimenta os valores das novas colunas inseridas anteriormente pela função [registerCustomColumn]
+     * @param  string $column_name
+     * @param  int    $post_id
+     * @return void
+     */
+    public function showInfoCustomColumns(string $column_name, int $post_id ): void
+    {
+        if ( $column_name === 'template_block_template_slug' ) {
+            echo esc_html( get_post_meta( $post_id, 'template_block_template_slug', true ) ) ?: '—';
         }
     }
 

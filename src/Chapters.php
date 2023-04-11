@@ -30,6 +30,10 @@ class Chapters extends BaseClass
         // inserção e edição dos capitulos
         add_action( 'add_meta_boxes', [&$this, 'createMetaBoxes' ]);
         add_action( 'save_post',      [&$this, 'saveMetaBoxData' ]);
+
+         // inserindo uma nova coluna na listagem de capitulos
+        add_filter( 'manage_chapters_posts_columns', [&$this, 'registerCustomColumn' ]);
+        add_filter( 'manage_chapters_posts_custom_column', [&$this, 'showInfoCustomColumns' ], 10, 2 );
 	}
 
 	/**
@@ -187,6 +191,42 @@ class Chapters extends BaseClass
         $template_slug = $_REQUEST['chapter_template_slug'] ?? current($this->templates)['slug'];
 
         update_post_meta( $post_id, 'chapter_template_slug', $template_slug);
+    }
+
+    /**
+     * define novas colunas na listagem de capitulos
+     * @param  array  $columns
+     * @return array
+     */
+    public function registerCustomColumn( array $columns ): array
+    {
+
+        $columns['parent_chapter']        = 'Capitulo Pai';
+        $columns['chapter_tree']          = 'Arvore';
+        $columns['chapter_template_slug'] = 'Template';
+
+        return $columns;
+    }
+
+    /**
+     * alimenta os valores das novas colunas inseridas anteriormente pela função [registerCustomColumn]
+     * @param  string $column_name
+     * @param  int    $post_id
+     * @return void
+     */
+    public function showInfoCustomColumns(string $column_name, int $post_id ): void
+    {
+        if ( $column_name === 'chapter_tree' ) {
+            echo esc_html( get_post_meta( $post_id, 'chapter_tree', true ) ) ?: '—';
+        }
+
+        if ( $column_name === 'parent_chapter' ) {
+            echo esc_html( get_post_meta( $post_id, 'parent_chapter', true ) ) ?: '—';
+        }
+
+        if ( $column_name === 'chapter_template_slug' ) {
+            echo esc_html( get_post_meta( $post_id, 'chapter_template_slug', true ) ) ?: '—';
+        }
     }
 
     /**
