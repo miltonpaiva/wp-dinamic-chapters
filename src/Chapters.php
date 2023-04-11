@@ -189,8 +189,7 @@ class Chapters extends BaseClass
             // verificando se o bloco foi escolhido
             foreach ($blocks as $key_b => $block) {
                 // definindo se o capitulo é o selecionado
-                $blocks[$key_b]->is_selected = ($content_block == $block->post_name
-                                                && $chapters[$key]->is_selected);
+                $blocks[$key_b]->is_selected = ($content_block == $block->post_name && $chapters[$key]->is_selected);
             }
 
             $chapters[$key]->blocks = $blocks;
@@ -208,6 +207,7 @@ class Chapters extends BaseClass
     {
         // validando o post type
         if ( $_REQUEST['post_type'] == 'chapters' ){
+
             // pegando o json de informações da requisição
             $parent_chapter_info = $_REQUEST['parent_chapter_info'] ?? '[]';
             $parent_chapter_info = str_replace('\"', '"', $parent_chapter_info);
@@ -218,14 +218,23 @@ class Chapters extends BaseClass
             // pegando o post atual
             $current_post = get_post($post_id);
 
-            $parent_chapter = $info['post_name']    ?? '';
-            $chapter_tree   = $info['chapter_tree'] ?? "/{$current_post->post_name}";
+            $parent_chapter = $info['post_name'] ?? '';
+
+            // pegando os dados do capitulo pai, se houver
+            $parent_post = $this->getChapterByPostName($parent_chapter);
+            $parent_post_tree = get_post_meta( $parent_post->ID, 'chapter_tree', true );
+
+            // validação se há capitulo pai escolhido
+            $has_parent = ($parent_chapter != '' && $parent_post_tree);
+
+            // montando a arvore do site
+            $chapter_tree = $has_parent? "{$parent_post_tree}/{$current_post->post_name}" : "/{$current_post->post_name}" ;
 
             update_post_meta( $post_id, 'parent_chapter', $parent_chapter);
             update_post_meta( $post_id, 'chapter_tree', $chapter_tree);
 
             // pegando o slug do template pela url ou definindo um padrão
-            $template_slug = $_REQUEST['chapter_template_slug'] ?? current($this->templates)['slug'];
+            $template_slug = $_REQUEST['chapter_template_slug'] ?? current($this->templates->getAllTemplates())->slug;
 
             update_post_meta( $post_id, 'chapter_template_slug', $template_slug);
         }
