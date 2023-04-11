@@ -91,8 +91,10 @@ class Chapters extends BaseClass
      */
     public function createMetaBoxes(): void
     {
-    	$this->registerMetaBox('chapters_relations', 'Seleção de Capitulo Pai', 'showRelationsForm', ['chapters']);
-    	$this->registerMetaBox('chapters_templates', 'Seleção de Template do Capitulo', 'showTemplatesForm', ['chapters']);
+    	$this->registerMetaBox('chapters_relations', 'Selecione o Capitulo Pai', 'showRelationsForm', ['chapters']);
+    	$this->registerMetaBox('chapters_templates', 'Selecione o Template do Capitulo', 'showTemplatesForm', ['chapters']);
+
+        $this->registerMetaBox('chapter_content_relations', 'Selecione o Capitulo a Receber o Conteudo', 'showContentRelationsForm', ['chapter_content']);
     }
 
     /**
@@ -162,6 +164,42 @@ class Chapters extends BaseClass
     }
 
     /**
+     * exibe a meta box que define o capitudo que vai recever o conteudo
+     * @param  object $current_post
+     * @return void
+     */
+    public function showContentRelationsForm(object $current_post): void
+    {
+        // pegando algumas informações do conteudo
+        $linked_chapter = get_post_meta( $current_post->ID, 'linked_chapter', true );
+        $content_block  = get_post_meta( $current_post->ID, 'content_block', true );
+
+        // pegando todos os capitulos
+        $chapters = $this->getAllChapters();
+
+        // percorrendo todos os capitulos
+        foreach ($chapters as $key => $chapter) {
+
+            // pegando a lista de blocos do template do capitulo
+            $blocks = $this->templates->getTemplateBlocks($chapter->template_slug);
+
+            // definindo se o capitulo é o selecionado
+            $chapters[$key]->is_selected = ($linked_chapter == $chapter->post_name);
+
+            // verificando se o bloco foi escolhido
+            foreach ($blocks as $key_b => $block) {
+                // definindo se o capitulo é o selecionado
+                $blocks[$key_b]->is_selected = ($content_block == $block->post_name
+                                                && $chapters[$key]->is_selected);
+            }
+
+            $chapters[$key]->blocks = $blocks;
+        }
+
+        require ADMIN_BLOCKS_DIRETORY . '/chapter_content_relations_form.php';
+    }
+
+    /**
      * salva os dados vindos das meta box
      * @param  int    $post_id
      * @return void
@@ -169,28 +207,42 @@ class Chapters extends BaseClass
     public function saveMetaBoxData(int $post_id): void
     {
         // validando o post type
-        if ( $_REQUEST['post_type'] != 'chapters' ) return;
+        if ( $_REQUEST['post_type'] == 'chapters' ){
+            // pegando o json de informações da requisição
+            $parent_chapter_info = $_REQUEST['parent_chapter_info'] ?? '[]';
+            $parent_chapter_info = str_replace('\"', '"', $parent_chapter_info);
 
-        // pegando o json de informações da requisição
-        $parent_chapter_info = $_REQUEST['parent_chapter_info'] ?? '[]';
-        $parent_chapter_info = str_replace('\"', '"', $parent_chapter_info);
+            // obtendo as informações
+            $info = json_decode($parent_chapter_info, true);
 
-        // obtendo as informações
-        $info = json_decode($parent_chapter_info, true);
+            // pegando o post atual
+            $current_post = get_post($post_id);
 
-        // pegando o post atual
-        $current_post = get_post($post_id);
+            $parent_chapter = $info['post_name']    ?? '';
+            $chapter_tree   = $info['chapter_tree'] ?? "/{$current_post->post_name}";
 
-        $parent_chapter = $info['post_name']    ?? '';
-        $chapter_tree   = $info['chapter_tree'] ?? "/{$current_post->post_name}";
+            update_post_meta( $post_id, 'parent_chapter', $parent_chapter);
+            update_post_meta( $post_id, 'chapter_tree', $chapter_tree);
 
-        update_post_meta( $post_id, 'parent_chapter', $parent_chapter);
-        update_post_meta( $post_id, 'chapter_tree', $chapter_tree);
+            // pegando o slug do template pela url ou definindo um padrão
+            $template_slug = $_REQUEST['chapter_template_slug'] ?? current($this->templates)['slug'];
 
-        // pegando o slug do template pela url ou definindo um padrão
-        $template_slug = $_REQUEST['chapter_template_slug'] ?? current($this->templates)['slug'];
+            update_post_meta( $post_id, 'chapter_template_slug', $template_slug);
+        }
 
-        update_post_meta( $post_id, 'chapter_template_slug', $template_slug);
+        // validando o post type
+        if ( $_REQUEST['post_type'] == 'chapter_content' ){
+
+            // pegando o json de informações da requisição
+            $chapters_content_info = $_REQUEST['chapters_content_info'] ?? '';
+            $chapters_content_info = str_replace('\"', '"', $chapters_content_info);
+
+            // obtendo as informações
+            $info = json_decode($chapters_content_info, true);
+
+            update_post_meta( $post_id, 'linked_chapter', $info['linked_chapter'] ?: '');
+            update_post_meta( $post_id, 'content_block', $info['content_block'] ?: '');
+        }
     }
 
     /**
@@ -260,8 +312,8 @@ class Chapters extends BaseClass
         $chapter_tree          = get_post_meta( $chapter->ID, 'chapter_tree', true );
         $chapter_template_slug = get_post_meta( $chapter->ID, 'chapter_template_slug', true );
 
-        $chapter->parent_post_name = $parent_chapter;
-        $chapter->template_slug    = $chapter_template_slug;
+        $chapter->parent_chapter = $parent_chapter;
+        $chapter->template_slug  = $chapter_template_slug;
 
         // pegando/definindo a arvore do capitulo
         $chapter->tree = $chapter_tree ?: "/{$chapter->post_name}";
