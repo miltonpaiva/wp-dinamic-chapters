@@ -87,6 +87,8 @@ class Templates extends BaseClass
     public function createMetaBoxes(): void
     {
     	$this->registerMetaBox('template_dir', 'Caminho do Arquivo', 'showTemplateDirForm', ['templates']);
+        $this->registerMetaBox('template_block_dir', 'Caminho do Arquivo', 'showTemplateBlockDirForm', ['template_block']);
+        $this->registerMetaBox('template_block_relations', 'Seleção do Template', 'showTemplateBlockSelectionForm', ['template_block']);
     }
 
     /**
@@ -102,6 +104,38 @@ class Templates extends BaseClass
     }
 
     /**
+     * exibe o bloco de formulario para
+     * capiturar o caminho do arquivo do bloco de template
+     * @param  object $current_post
+     * @return void
+     */
+    public function showTemplateBlockDirForm(object $current_post): void
+    {
+        $template_block_archive_name = get_post_meta( $current_post->ID, 'template_block_archive_name', true );
+        require ADMIN_BLOCKS_DIRETORY . '/templates_block_dir_form.php';
+    }
+
+    /**
+     * exibe o bloco de formulario para
+     * capiturar o caminho do arquivo do bloco de template
+     * @param  object $current_post
+     * @return void
+     */
+    public function showTemplateBlockSelectionForm(object $current_post): void
+    {
+        $current_template_block_template_slug = get_post_meta( $current_post->ID, 'template_block_template_slug', true );
+
+        $all_templates = $this->getAllTemplates();
+
+        // validando o template selecionado
+        foreach ($all_templates as $key => $template) {
+            $all_templates[$key]->is_selected = ($template->post_name == $current_template_block_template_slug);
+        }
+
+        require ADMIN_BLOCKS_DIRETORY . '/templates_block_selection_form.php';
+    }
+
+    /**
      * salva os dados vindos das meta box
      * @param  int    $post_id
      * @return void
@@ -109,9 +143,15 @@ class Templates extends BaseClass
     public function saveMetaBoxData(int $post_id): void
     {
         // validando o post type
-        if ( $_REQUEST['post_type'] != 'templates' ) return;
+        if ( $_REQUEST['post_type'] == 'templates' ){
+            update_post_meta( $post_id, 'template_archive_name', $_REQUEST['template_archive_name'] ?? '');
+        }
 
-        update_post_meta( $post_id, 'template_archive_name', $_REQUEST['template_archive_name'] ?? '');
+        // validando o post type
+        if ( $_REQUEST['post_type'] == 'template_block' ){
+            update_post_meta( $post_id, 'template_block_archive_name', $_REQUEST['template_block_archive_name'] ?? '');
+            update_post_meta( $post_id, 'template_block_template_slug', $_REQUEST['template_block_template_slug'] ?? '');
+        }
     }
 
     /**
