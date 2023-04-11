@@ -199,4 +199,16 @@ class Templates extends BaseClass
 
         return $templates;
     }
+
+    /**
+     * retorna a lista de blocos de template com base no slug do template passado
+     * @param  string $template_slug [description]
+     * @return [type]                [description]
+     */
+    public function getTemplateBlocks(string $template_slug): array
+    {
+        $blocks = $this->getPostsByMeta('template_block', 'template_block_template_slug', $template_slug);
+
+        return $blocks;
+    }
 }
